@@ -3,17 +3,18 @@ import numpy as np
 import torch
 import matplotlib.pyplot as plt
 from PIL import Image
-import cv2 # For show_mask function
+import cv2  # For show_mask function
 
 from sam2.build_sam import build_sam2
 from sam2.sam2_image_predictor import SAM2ImagePredictor
+
 
 # Helper function to display and save mask
 def show_mask(mask, ax, random_color=False, borders=True):
     if random_color:
         color = np.concatenate([np.random.random(3), np.array([0.6])], axis=0)
     else:
-        color = np.array([30/255, 144/255, 255/255, 0.6])
+        color = np.array([30 / 255, 144 / 255, 255 / 255, 0.6])
     h, w = mask.shape[-2:]
     mask = mask.astype(np.uint8)
     mask_image = mask.reshape(h, w, 1) * color.reshape(1, 1, -1)
@@ -23,11 +24,17 @@ def show_mask(mask, ax, random_color=False, borders=True):
         mask_image = cv2.drawContours(mask_image, contours, -1, (1, 1, 1, 0.5), thickness=2)
     ax.imshow(mask_image)
 
+
 def show_points(coords, labels, ax, marker_size=375):
-    pos_points = coords[labels==1]
-    neg_points = coords[labels==0]
-    ax.scatter(pos_points[:, 0], pos_points[:, 1], color='green', marker='*', s=marker_size, edgecolor='white', linewidth=1.25)
-    ax.scatter(neg_points[:, 0], neg_points[:, 1], color='red', marker='*', s=marker_size, edgecolor='white', linewidth=1.25)
+    pos_points = coords[labels == 1]
+    neg_points = coords[labels == 0]
+    ax.scatter(
+        pos_points[:, 0], pos_points[:, 1], color="green", marker="*", s=marker_size, edgecolor="white", linewidth=1.25
+    )
+    ax.scatter(
+        neg_points[:, 0], neg_points[:, 1], color="red", marker="*", s=marker_size, edgecolor="white", linewidth=1.25
+    )
+
 
 def main():
     # Set device
@@ -52,8 +59,8 @@ def main():
         )
 
     # Model configuration
-    sam2_checkpoint = "checkpoints/sam2.1_hiera_base_plus.pt" # Correct path from current working directory
-    model_cfg = "sam2/configs/sam2.1/sam2.1_hiera_b+.yaml"
+    sam2_checkpoint = "checkpoints/sam2.1_hiera_base_plus.pt"  # Correct path from current working directory
+    model_cfg = "configs/sam2.1/sam2.1_hiera_b+.yaml"
 
     # Build SAM2 model
     sam2_model = build_sam2(model_cfg, sam2_checkpoint, device=device)
@@ -91,12 +98,13 @@ def main():
     show_mask(best_mask, plt.gca(), random_color=False, borders=True)
     show_points(input_point, input_label, plt.gca())
     plt.title(f"Predicted Mask (Score: {best_score:.3f})", fontsize=18)
-    plt.axis('off')
+    plt.axis("off")
     output_image_path = "cars_segment_mask.png"
     plt.savefig(output_image_path)
-    plt.close() # Close the plot to prevent it from being displayed if run in a non-interactive environment
+    plt.close()  # Close the plot to prevent it from being displayed if run in a non-interactive environment
 
     print(f"Segment mask saved to {output_image_path}")
+
 
 if __name__ == "__main__":
     main()
