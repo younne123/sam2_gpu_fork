@@ -4,6 +4,7 @@ import torch
 import matplotlib.pyplot as plt
 from PIL import Image
 import cv2  # For show_mask function
+import time
 
 from sam2.build_sam import build_sam2
 from sam2.sam2_image_predictor import SAM2ImagePredictor
@@ -62,28 +63,48 @@ def main():
     sam2_checkpoint = "checkpoints/sam2.1_hiera_base_plus.pt"  # Correct path from current working directory
     model_cfg = "configs/sam2.1/sam2.1_hiera_b+.yaml"
 
+    print("Loading model...")
+    start_load = time.time()
     # Build SAM2 model
     sam2_model = build_sam2(model_cfg, sam2_checkpoint, device=device)
     predictor = SAM2ImagePredictor(sam2_model)
+    if device.type == "cuda":
+        torch.cuda.synchronize()
+    end_load = time.time()
+    print(f"Model load time: {end_load - start_load:.4f} seconds")
 
     # Load image
     image_path = "notebooks/images/cars.jpg"
     image = Image.open(image_path)
     image_np = np.array(image.convert("RGB"))
 
-    # Set image for predictor
+    print("Starting inference...")
+    
+    # Measure Image Encoding Time
+    start_encoding = time.time()
+    # Set image for predictor (Image Encoder)
     predictor.set_image(image_np)
+    if device.type == "cuda":
+        torch.cuda.synchronize()
+    end_encoding = time.time()
+    print(f"Image Encoding time: {end_encoding - start_encoding:.4f} seconds")
 
     # Define input point (x, y) and label (1 for foreground)
     input_point = np.array([[750, 750]])
     input_label = np.array([1])
 
-    # Predict masks
+    # Measure Mask Prediction Time
+    start_prediction = time.time()
+    # Predict masks (Prompt Encoder + Mask Decoder)
     masks, scores, logits = predictor.predict(
         point_coords=input_point,
         point_labels=input_label,
         multimask_output=True,
     )
+    if device.type == "cuda":
+        torch.cuda.synchronize()
+    end_prediction = time.time()
+    print(f"Mask Prediction time: {end_prediction - start_prediction:.4f} seconds")
 
     # Select the best mask
     sorted_ind = np.argsort(scores)[::-1]
